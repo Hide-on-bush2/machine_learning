@@ -83,6 +83,10 @@ if __name__ == '__main__':
 	cart_ = CartClassifision()
 	T = cart_.cart_classify(data_set, ["year", "work", "house", "credit"], "class")
 	cart_.print_tree(T)
+	forest = cart_.pruning(T, data_set, ["year", "work", "house", "credit"], "class")
+	for alpha, tree in forest.items():
+		print(alpha, "->")
+		cart_.print_tree(tree)
 
 
 
