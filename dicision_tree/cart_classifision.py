@@ -5,7 +5,7 @@ class node:
 	def __init__(self, eigein, val, label):
 		self.eigein = eigein
 		self.label = label
-		self.val =val
+		self.val = val
 		self.yes = None
 		self.no = None
 
@@ -93,14 +93,14 @@ class CartClassifision:
 			for key, val in dic_D.items():
 				p_k += (val/s) * (1 - val/s)
 			return (s/total_num)*p_k
-		list_eigen.remove(T.eigein)
-		Data_yes = pd.DataFrame(columns=list_eigen+[ouput])
-		Data_no = pd.DataFrame(columns=list_eigen+[ouput])
+		list_eigein.remove(T.eigein)
+		Data_yes = pd.DataFrame(columns=list_eigein+[ouput])
+		Data_no = pd.DataFrame(columns=list_eigein+[ouput])
 		for i in range(Data_set.shape[0]):
 			if Data_set.loc[i, T.eigein] == T.val:
-				Data_yes = Data_yes.append(Data_set.loc[i, list_eigein+[ouput]])
+				Data_yes = Data_yes.append(Data_set.loc[i, list_eigein+[ouput]], ignore_index=True)
 			else:
-				Data_no = Data_no.append(Data_set.loc[i, list_eigein+[ouput]])
+				Data_no = Data_no.append(Data_set.loc[i, list_eigein+[ouput]], ignore_index=True)
 		return self.prediction_err(T.yes, Data_yes, total_num, list_eigein, ouput) + self.prediction_err(T.no, Data_no, total_num, list_eigein, ouput)
 
 	def get_loss(self, alpha, T, Data_set, list_eigein, ouput):
@@ -112,7 +112,7 @@ class CartClassifision:
 		yes = []
 		no = []
 		for i in range(Data_set.shape[0]):
-			if Data_set.loc[i, T.eigein] == T.val:
+			if Data_set.loc[i, t.eigein] == t.val:
 				yes.append(Data_set.loc[i, ouput])
 			else:
 				no.append(Data_set.loc[i, ouput])
@@ -120,12 +120,20 @@ class CartClassifision:
 
 	def tranvers_tree(self, T, Data_set, list_eigein, ouput):
 		if T == None or T.eigein == ouput:
-			return
-		tmp_dic = {T:(self.get_node_prerr(T, Data_set, list_eigein, ouput) - self.prediction_err(T, Data_set, Data_set.shape[0], list_eigein, ouput)) / (len(self.get_leaves(T))-1)} 
+			return {}
+		tmp_dic = {T:(self.get_node_prerr(T, Data_set, list_eigein[:], ouput) - self.prediction_err(T, Data_set, Data_set.shape[0], list_eigein[:], ouput)) / (len(self.get_leaves(T))-1)} 
 		if T.yes.eigein == ouput and T.no.eigein == ouput:
 			return tmp_dic
-		yes_dic = self.tranvers_tree(T.yes, Data_yes, list_eigein, ouput, alpha)
-		no_dic = self.tranvers_tree(T.no, Data_yes, list_eigein, ouput, alpha)
+		list_eigein.remove(T.eigein)
+		Data_yes = pd.DataFrame(columns=list_eigein+[ouput])
+		Data_no = pd.DataFrame(columns=list_eigein+[ouput])
+		for i in range(Data_set.shape[0]):
+			if Data_set.loc[i, T.eigein] == T.val:
+				Data_yes = Data_yes.append(Data_set.loc[i, list_eigein+[ouput]], ignore_index=True)
+			else:
+				Data_no = Data_no.append(Data_set.loc[i, list_eigein+[ouput]], ignore_index=True)
+		yes_dic = self.tranvers_tree(T.yes, Data_yes, list_eigein[:], ouput)
+		no_dic = self.tranvers_tree(T.no, Data_no, list_eigein[:], ouput)
 		for key, val in yes_dic.items():
 			if key not in tmp_dic:
 				tmp_dic[key] = val
@@ -136,10 +144,9 @@ class CartClassifision:
 
 	def pruning(self, T, Data_set, list_eigein, ouput):#cart剪枝
 		if T.eigein == ouput:
-			return
+			return {}
 		if T.yes.eigein == ouput and T.no.eigein == ouput:
-			return {k:T}
-
+			return {}
 		dic = self.tranvers_tree(T, Data_set, list_eigein, ouput)
 		T_k, alpha_k = min(dic.items(), key=lambda x:x[1])
 		T_k.eigein = ouput
